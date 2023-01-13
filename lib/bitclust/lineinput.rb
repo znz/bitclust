@@ -15,8 +15,10 @@ require 'bitclust/parseutils'
 # Utility class for line-wise file parsing
 class LineInput
 
-  def LineInput.for_string(s)
-    new(StringIO.new(s))
+  def LineInput.for_string(s, path=nil)
+    line_input = new(StringIO.new(s))
+    line_input.instance_eval { @path = path }
+    line_input
   end
 
   def initialize(f, entry = nil)
@@ -25,6 +27,7 @@ class LineInput
     @buf = []
     @lineno = 0
     @eof_p = false
+    @path = @input.path if @input.respond_to?(:path)
   end
 
   def inspect
@@ -36,7 +39,7 @@ class LineInput
   end
 
   def path
-    @input.path if @input.respond_to?(:path)
+    @path
   end
 
   def name

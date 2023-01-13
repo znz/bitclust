@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 #
-# bitclust/rrdparser.rb
+# bitclust/mdparser.rb
 #
-# Copyright (c) 2006-2007 Minero Aoki
+# Copyright (c) 2023 Kazuhiro NISHIYAMA
 #
 # This program is free software.
 # You can distribute/modify this program under the Ruby License.
@@ -17,20 +17,27 @@ require 'bitclust/parseutils'
 require 'bitclust/nameutils'
 require 'bitclust/exception'
 
+require 'liquid'
+require 'yaml'
+
 module BitClust
 
-  # Parser for Ruby API reference file (refm/api/src/*)
-  class RRDParser
-
+  # Parser for Ruby API reference file (refm/api/src/**/*.md)
+  #
+  # * category,require,sublibrary などのメタデータは YAML front matter にする
+  # * 本文のプリプロセッサは Liquid
+  # * RD の /^={1,5} / の見出しは /^\#{1,5} / にする
+  # * RD の /^--- / で書く MethodList の行は /^\#\#\# def / にする
+  class MDParser
     include NameUtils
     include ParseUtils
 
-    def RRDParser.parse_stdlib_file(path, params = {"version" => "1.9.0"})
+    def self.parse_stdlib_file(path, params = {"version" => "1.9.0"})
       parser = new(MethodDatabase.dummy(params))
       parser.parse_file(path, libname(path), params)
     end
 
-    def RRDParser.parse(s, lib, params = {"version" => "1.9.0"})
+    def self.parse(s, lib, params = {"version" => "1.9.0"})
       parser = new(MethodDatabase.dummy(params))
       if s.respond_to?(:to_io)
         io = s.to_io
@@ -45,7 +52,7 @@ module BitClust
       return l, parser.db
     end
 
-    def RRDParser.split_doc(source)
+    def self.split_doc(source)
       if m = /^=(\[a:.*?\])?( +(.*)|([^=].*))\r?\n/.match(source)
         title = $3 || $4
         s = m.post_match
@@ -54,7 +61,7 @@ module BitClust
       return ["", source]
     end
 
-    def RRDParser.libname(path)
+    def self.libname(path)
       case path
       when %r<(\A|/)_builtin/>
         '_builtin'
@@ -69,15 +76,58 @@ module BitClust
     end
     attr_reader :db
 
+    METHOD_LIST_PATTERN = /\A\#\#\#\s*(?:def\b|(?=#{GVAR_RE}))/o
+
+    # jekyll-4.3.1/lib/jekyll/document.rb より
+    YAML_FRONT_MATTER_REGEXP = %r!\A(---\s*\n.*?\n?)^((---|\.\.\.)\s*$\n?)!m.freeze
+
+    class F
+      def initialize(content, path, params)
+        @source = @content = content
+        @path = path
+        @data = {}
+        # TODO: Liquid はとりあえず適用しているだけで何を変数やフィルター設定はまだ
+        template = Liquid::Template.parse(source, line_numbers: true, error_mode: :strict)
+        variables = {
+        }.merge(params)
+        rendered = template.render!(variables, strict_filters: true, strict_variables: true)
+        if match = rendered.match(YAML_FRONT_MATTER_REGEXP)
+          @content = match.post_match
+          @data = YAML.safe_load(match[1])
+        end
+        @line_input = LineInput.for_string(@content, @path)
+      rescue Psych::SyntaxError => e
+        warn "YAML Exception reading #{path}: #{e.message}"
+        raise e
+      rescue StandardError => e
+        warn "Error reading file #{path}: #{e.message}"
+        raise e
+      end
+
+      attr_reader :source
+      attr_reader :data
+
+      def method_missing(m, *args, **kwargs, &block)
+        if @line_input.respond_to?(m)
+          @line_input.public_send(m, *args, **kwargs, &block)
+        else
+          super
+        end
+      end
+    end
+
     def parse_file(path, libname, params = {})
-      fopen(path, 'r:UTF-8') {|f|
-        return parse(f, libname, params).tap { |lib| lib.source_location = Location.new(path, 1) }
-      }
+      file_read_opts = {}
+      content = File.read(path, **file_read_opts)
+      f = F.new(content, path, params)
+      lib = parse(f, libname, params)
+      lib.source_location = Location.new(path, 1)
+      lib.source_format = 'md'
+      lib
     end
 
     def parse(f, libname, params = {})
       @context = Context.new(@db, libname)
-      f = LineInput.new(Preprocessor.wrap(f, params))
       do_parse f
       @context.library
     end
@@ -85,24 +135,21 @@ module BitClust
     private
 
     def do_parse(f)
-      f.skip_blank_lines
-      @context.categorize f.gets_if(/\Acategory\s(.*)/, 1)
-      f.skip_blank_lines
-      f.while_match(/\Arequire\s/) do |line|
-        @context.require line.split[1]
+      @context.categorize f.data['category']
+      Array(f.data['require']).each do |feature|
+        @context.require feature
       end
-      f.skip_blank_lines
-      f.while_match(/\Asublibrary\s/) do |line|
-        @context.sublibrary line.split[1]
+      Array(f.data['sublibrary']) do |lib|
+        @context.sublibrary lib
       end
-      f.skip_blank_lines
-      @context.library.source = f.break(/\A==?[^=]|\A---/).join('').rstrip
+      # 3レベル以上の見出しはライブラリの説明で使うことがある
+      @context.library.source = f.break(/\A\#\#?[^\#]/).join('').rstrip
       read_classes f
       if line = f.gets   # error
         case line
-        when /\A==[^=]/
+        when /\A\#\#[^\#]/
           parse_error "met level-2 header in library document; maybe you forgot level-1 header", line
-        when /\A---/
+        when METHOD_LIST_PATTERN
           parse_error "met bare method entry in library document; maybe you forgot reopen/redefine level-1 header", line
         else
           parse_error "unexpected line in library document", line
@@ -111,7 +158,7 @@ module BitClust
     end
 
     def read_classes(f)
-      f.while_match(/\A=[^=]/) do |line|
+      f.while_match(/\A\#[^\#]/) do |line|
         type, name, superclass = *parse_level1_header(line)
         case type
         when 'class'
@@ -136,14 +183,8 @@ module BitClust
       end
     end
 
-    # "class Foo < Bar" -> ["class", "Foo", "Bar"]
-    # "class Foo" -> ["class", "Foo", nil]
-    # "module Foo" -> ["module", "Foo", nil]
-    # "object Foo"
-    # "reopen Foo"
-    # "redefine Foo"
     def parse_level1_header(line)
-      m = /\A(\S+)\s*([^\s<]+)(?:\s*<\s*(\S+))?\z/.match(line.sub(/\A=/, '').strip)
+      m = /\A(\S+)\s*([^\s<]+)(?:\s*<\s*(\S+))?\z/.match(line.sub(/\A\#/, '').strip)
       unless m
         parse_error "level-1 header syntax error", line
       end
@@ -165,7 +206,7 @@ module BitClust
       read_extends f
       read_includes f
       f.skip_blank_lines
-      @context.klass.source = f.break(/\A==?[^=]|\A---/).join('').rstrip
+      @context.klass.source = f.break(/\A\#\#?[^\#]|\A---/).join('').rstrip
       read_level2_blocks f
     end
 
@@ -183,7 +224,7 @@ module BitClust
       f.skip_blank_lines
       read_extends f
       f.skip_blank_lines
-      @context.klass.source = f.break(/\A==?[^=]|\A---/).join('').rstrip
+      @context.klass.source = f.break(/\A\#\#?[^\#]|\A---/).join('').rstrip
       @context.visibility = :public
       @context.type = :singleton_method
       read_level2_blocks f
@@ -222,8 +263,8 @@ module BitClust
     def read_level2_blocks(f)
       read_entries f
       f.skip_blank_lines
-      f.while_match(/\A==[^=]/) do |line|
-        case line.sub(/\A==/, '').strip
+      f.while_match(/\A\#\#[^\#]/) do |line|
+        case line.sub(/\A\#\#/, '').strip
         when /\A((?:public|private|protected)\s+)?(?:(class|singleton|instance)\s+)?methods?\z/i
           @context.visibility = ($1 || 'public').downcase.strip.intern
           t = ($2 || 'instance').downcase.sub(/class/, 'singleton')
@@ -260,10 +301,11 @@ module BitClust
       result
     end
 
+
     def read_chunks(f)
       f.skip_blank_lines
       result = []
-      f.while_match(/\A---/) do |line|
+      f.while_match(METHOD_LIST_PATTERN) do |line|
         f.ungets line
         result.push read_chunk(f)
       end
@@ -271,8 +313,8 @@ module BitClust
     end
 
     def read_chunk(f)
-      header = f.span(/\A---/)
-      body = f.break(/\A(?:---|={1,2}[^=])/)
+      header = f.span(METHOD_LIST_PATTERN)
+      body = f.break(/\A(?:#{METHOD_LIST_PATTERN}|\#{1,2}[^\#])/o)
       src = (header + body).join('')
       src.location = header[0].location
       sigs = header.map {|line| method_signature(line) }
@@ -313,8 +355,8 @@ module BitClust
       end
     end
 
-    SIGNATURE = /\A---\s*(?:(#{CLASS_PATH_RE})(#{TYPEMARK_RE}))?(#{METHOD_NAME_RE})/
-    GVAR = /\A---\s*(#{GVAR_RE})/
+    SIGNATURE = /#{METHOD_LIST_PATTERN}\s+(?:(#{CLASS_PATH_RE})(#{TYPEMARK_RE}))?(#{METHOD_NAME_RE})/o
+    GVAR = /#{METHOD_LIST_PATTERN}(#{GVAR_RE})/o
 
     def method_signature(line)
       case
@@ -381,6 +423,7 @@ module BitClust
           c.superclass = superclass
           c.library = @library
           c.source_location = location
+          c.source_format = 'md'
           @library.add_class c
         }
         @kind = :defined
@@ -462,6 +505,7 @@ module BitClust
           m.visibility      = @visibility || :public
           m.source          = chunk.source
           m.source_location = chunk.source.location
+          m.source_format   = 'md'
           case @kind
           when :added, :redefined
             @library.add_method m

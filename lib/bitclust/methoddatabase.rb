@@ -16,6 +16,7 @@ require 'bitclust/docentry'
 require 'bitclust/completion'
 require 'bitclust/refsdatabase'
 require 'bitclust/rrdparser'
+require 'bitclust/mdparser'
 require 'bitclust/exception'
 require 'fileutils'
 
@@ -146,7 +147,8 @@ module BitClust
     def update_by_stdlibtree(root)
       @root = root
       parse_LIBRARIES("#{root}/LIBRARIES", properties()).each do |libname|
-        update_by_file "#{root}/#{libname}.rd", libname
+        path = Dir.glob("#{root}/#{libname}.[mr]d").first
+        update_by_file path, libname
       end
     end
 
@@ -159,7 +161,11 @@ module BitClust
 
     def update_by_file(path, libname)
       check_transaction
-      RRDParser.new(self).parse_file(path, libname, properties())
+      if path.end_with?('.md')
+        MDParser.new(self).parse_file(path, libname, properties())
+      else
+        RRDParser.new(self).parse_file(path, libname, properties())
+      end
     end
 
     def refs

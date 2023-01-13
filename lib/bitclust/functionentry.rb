@@ -46,6 +46,7 @@ module BitClust
       property :params,          'String'
       property :source,          'String'
       property :source_location, 'Location'
+      property :source_format,   'String'
     }
 
     attr_reader :id

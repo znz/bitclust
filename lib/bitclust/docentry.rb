@@ -61,6 +61,7 @@ module BitClust
       property :title,           'String'
       property :source,          'String'
       property :source_location, 'Location'
+      property :source_format,   'String'
     }
 
     def inspect

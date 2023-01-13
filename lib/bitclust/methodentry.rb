@@ -101,6 +101,7 @@ module BitClust
       property :kind,            'Symbol'   # :defined | :added | :redefined
       property :source,          'String'
       property :source_location, 'Location'
+      property :source_format,   'String'
     }
 
     def inspect

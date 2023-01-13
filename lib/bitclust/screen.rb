@@ -18,6 +18,8 @@ require 'json'
 require 'stringio'
 require 'uri'
 
+require 'bitclust/mdcompiler'
+
 module BitClust
 
   class ScreenManager
@@ -443,20 +445,35 @@ module BitClust
     end
 
     def compile_method(m, opt = nil)
-      rdcompiler().compile_method(m, opt)
+      compiler(m.source_format).compile_method(m, opt)
     end
 
     def compile_function(f, opt = nil)
-      rdcompiler().compile_function(f, opt)
+      compiler(f.source_format).compile_function(f, opt)
     end
 
+    # TODO: rename to compile_src
     def compile_rd(src)
-      rdcompiler().compile(src)
+      ent = @entry || @entries.first # MethodScreenは@entryがない
+      compiler(ent.source_format).compile(src)
+    end
+
+    def compiler(source_format)
+      if source_format == 'md'
+        mdcompiler
+      else
+        rdcompiler
+      end
     end
 
     def rdcompiler
       opt = {:catalog => message_catalog()}.merge(@conf)
       RDCompiler.new(@urlmapper, @hlevel, opt)
+    end
+
+    def mdcompiler
+      opt = {:catalog => message_catalog()}.merge(@conf)
+      MDCompiler.new(@urlmapper, @hlevel, opt)
     end
 
     def foreach_method_chunk(src)
@@ -686,6 +703,11 @@ module BitClust
     def rdcompiler
       h = {:force => true, :catalog => message_catalog() }.merge(@conf)
       RDCompiler.new(@urlmapper, @hlevel, h)
+    end
+
+    def mdcompiler
+      h = {:force => true, :catalog => message_catalog() }.merge(@conf)
+      MDCompiler.new(@urlmapper, @hlevel, h)
     end
 
     def current_url
