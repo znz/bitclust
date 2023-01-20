@@ -120,9 +120,13 @@ module BitClust
       file_read_opts = {}
       content = File.read(path, **file_read_opts)
       f = F.new(content, path, params)
+      libname = f.data['append_to'] if f.data['append_to']
       lib = parse(f, libname, params)
-      lib.source_location = Location.new(path, 1)
-      lib.source_format = 'md'
+      unless f.data['append_to']
+        # 冒頭のライブラリの説明に相当する部分の情報は変更しない
+        lib.source_location = Location.new(path, 1)
+        lib.source_format = 'md'
+      end
       lib
     end
 
@@ -135,15 +139,20 @@ module BitClust
     private
 
     def do_parse(f)
-      @context.categorize f.data['category']
-      Array(f.data['require']).each do |feature|
-        @context.require feature
+      if f.data['append_to']
+        # 冒頭のライブラリの説明に相当する部分は無視する
+        f.break(/\A\#\#?[^\#]/)
+      else
+        @context.categorize f.data['category']
+        Array(f.data['require']).each do |feature|
+          @context.require feature
+        end
+        Array(f.data['sublibrary']) do |lib|
+          @context.sublibrary lib
+        end
+        # 3レベル以上の見出しはライブラリの説明で使うことがある
+        @context.library.source = f.break(/\A\#\#?[^\#]/).join('').rstrip
       end
-      Array(f.data['sublibrary']) do |lib|
-        @context.sublibrary lib
-      end
-      # 3レベル以上の見出しはライブラリの説明で使うことがある
-      @context.library.source = f.break(/\A\#\#?[^\#]/).join('').rstrip
       read_classes f
       if line = f.gets   # error
         case line

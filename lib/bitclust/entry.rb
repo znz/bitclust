@@ -100,6 +100,7 @@ module BitClust
         when '[ClassEntry]'   then "[]"
         when '[MethodEntry]'  then "[]"
         when 'Location'       then "nil"
+        when 'Format'         then "'rd'"
         else
           raise "must not happen: @type=#{@type.inspect}"
         end
@@ -118,6 +119,7 @@ module BitClust
         when '[ClassEntry]'   then "restore_classes(h['#{@name}'])"
         when '[MethodEntry]'  then "restore_methods(h['#{@name}'])"
         when 'Location'       then "h['#{@name}']&.tap { |loc| break if loc.empty?; break Location.new(*loc.split(?:)) }"
+        when 'Format'         then "h['#{@name}']"
         else
           raise "must not happen: @type=#{@type.inspect}"
         end
@@ -136,6 +138,7 @@ module BitClust
         when '[ClassEntry]'   then "serialize_entries(@#{@name})"
         when '[MethodEntry]'  then "serialize_entries(@#{@name})"
         when 'Location'       then "@#@name.to_s"
+        when 'Format'         then "@#{@name}"
         else
           raise "must not happen: @type=#{@type.inspect}"
         end
@@ -218,7 +221,7 @@ module BitClust
     end
 
     def serialize_entries(xs)
-      xs.map {|x| x.id }.join(',')
+      xs.map {|x| x.id }.sort.join(',')
     end
 
     def objpath

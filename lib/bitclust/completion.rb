@@ -282,7 +282,7 @@ $cm_comb_m += 1
 
     def save_class_index
       atomic_write_open('class/=index') {|f|
-        classes().each do |c|
+        classes().sort_by{|c| c.id }.each do |c|
           #f.puts "#{c.id}\t#{c.names.join(' ')}"  # FIXME: support class alias
           f.puts "#{c.id}\t#{c.name}"
         end
@@ -319,7 +319,7 @@ $cm_comb_m += 1
           end
       atomic_write_open('method/=sindex') {|f|
         index.keys.sort.each do |name|
-          f.puts "#{name}\t#{index[name].join(' ')}"
+          f.puts "#{name}\t#{index[name].sort.join(' ')}"
         end
       }
     end
@@ -330,7 +330,7 @@ $cm_comb_m += 1
             h = {}
             foreach_line('method/=sindex') do |line|
               name, *crefs = line.split(nil)
-              h[name] = crefs
+              h[name] = crefs.sort
             end
             h
           end
@@ -359,7 +359,7 @@ $cm_comb_m += 1
           end
       atomic_write_open('method/=index') {|f|
         index.keys.sort.each do |name|
-          f.puts "#{name}\t#{index[name].join(' ')}"
+          f.puts "#{name}\t#{index[name].sort.join(' ')}"
         end
       }
     end
