@@ -37,4 +37,5 @@ EOD
   s.add_runtime_dependency "liquid"
   s.add_runtime_dependency "kramdown"
   s.add_runtime_dependency "kramdown-parser-gfm"
+  s.add_runtime_dependency "rouge"
 end

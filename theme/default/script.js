@@ -6,6 +6,8 @@
 
     Array.prototype.forEach.call(elems,
       function(elem) {
+        if (elem.nodeName !== 'PRE') return;
+
         // sample code without caption
         tempDiv.innerHTML = elem.innerHTML
         const caption = tempDiv.getElementsByClassName("caption")[0]

@@ -11,7 +11,6 @@
 require 'bitclust/methodsignature'
 require 'bitclust/lineinput'
 require 'bitclust/htmlutils'
-require 'bitclust/textutils'
 require 'bitclust/messagecatalog'
 require 'bitclust/syntax_highlighter'
 require 'stringio'
@@ -26,8 +25,26 @@ module BitClust
   class MDCompiler
 
     include HTMLUtils
-    include TextUtils
     include Translatable
+
+    module ModifyLinkText
+      LINK_PREFIX_RE = /\A(?:lib|[cmfd]|ref|url|man|rfc|RFC|ruby-(?:list|dev|ext|talk|core)|feature|bug|misc):/
+      def add_link(el, href, title, alt_text = nil, ial = nil)
+        if alt_text
+          text = alt_text.sub(LINK_PREFIX_RE, '')
+          if text != alt_text
+            el.children.each do |e|
+              if LINK_PREFIX_RE =~ e.value.to_s
+                e.value = e.value.sub(LINK_PREFIX_RE, '')
+              end
+            end
+          end
+        end
+        super(el, href, title, alt_text, ial)
+      end
+    end
+
+    ::Kramdown::Parser::Kramdown.prepend ModifyLinkText
 
     def initialize(urlmapper, hlevel = 1, opt = {})
       @urlmapper = urlmapper
@@ -42,7 +59,20 @@ module BitClust
     end
 
     def compile_md(src)
-      Kramdown::Document.new(src, input: 'GFM').to_html
+      options = {
+        input: 'GFM',
+        auto_ids: false,
+        syntax_highlighter: 'rouge',
+        syntax_highlighter_opts: {
+          line_numbers: false,
+        },
+        remove_line_breaks_for_cjk: true,
+        hard_wrap: false,
+      }
+
+      add_link_defs(src)
+
+      Kramdown::Document.new(src, **options).to_html
     end
 
     def compile(src)
@@ -434,10 +464,12 @@ module BitClust
       end
       line '</dt>'
     end
+=end
 
-    BracketLink = /\[\[[\w-]+?:[!-~]+?(?:\[\] )?\]\]/n
+    BracketLink = /\[[\w-]+?:[!-~]+?(?:\[\] )?\]/
     NeedESC = /[&"<>]/
 
+=begin
     def compile_text(str)
       escape_table = HTMLUtils::ESC
       str.gsub(/(#{NeedESC})|(#{BracketLink})/o) {
@@ -448,6 +480,30 @@ module BitClust
           raise 'must not happen'
         end
       }
+    end
+=end
+
+    def add_link_defs(src)
+      links = []
+      src.scan(BracketLink) do
+        link = bracket_link($&[1..-2])
+        links.push([$&, link]) if link
+      end
+      unless links.empty?
+        src << "\n" << links.map{|id, link| "#{id}: #{link}\n"}.join
+      end
+    end
+
+    def a_href(url, label=nil)
+      if label
+        %Q(#{escape_html(url)} "#{escape_html(label)}")
+      else
+        escape_html(url)
+      end
+    end
+
+    def a_href_external(url, label=nil)
+      a_href(url, label) + %Q(\n{:class="external"})
     end
 
     def bracket_link(link, label = nil, frag = nil)
@@ -482,6 +538,8 @@ module BitClust
         protect(link) { reference_link(arg) }
       when 'url'
         direct_url(arg)
+      when 'http', 'https', 'ftp'
+        direct_url(link)
       when 'man'
         man_link(arg)
       when 'rfc', 'RFC'
@@ -491,18 +549,19 @@ module BitClust
       when 'feature', 'bug', 'misc'
         bugs_link(type, arg)
       else
-        "[[#{escape_html(link)}]]"
+        false # not link
       end
     end
 
     def protect(src)
       yield
     rescue => err
-      %Q(<span class="compileerror">[[compile error: #{escape_html(err.message)}: #{escape_html(src)}]]</span>)
+      warn "compile error: #{escape_html(err.message)}: #{escape_html(src)}"
+      false
     end
 
     def direct_url(url)
-      %Q(<a class="external" href="#{escape_html(url)}">#{escape_html(url)}</a>)
+      a_href_external(url)
     end
 
     def reference_link(arg)
@@ -519,7 +578,7 @@ module BitClust
         when 'd'
           title, t, id = @option[:database].get_doc(name).title, DocEntry.type_id.to_s, name
         else
-          raise "must not happen"
+          raise "must not happen: #{arg}"
         end
         label = @option[:database].refs[t, id, frag]
         label = title + '/' + label if label and name
@@ -531,7 +590,7 @@ module BitClust
         label = @option[:database].refs[type, e.name, frag] || frag
         a_href('#' + frag, label)
       else
-        raise "must not happen"
+        raise "must not happen: #{arg}"
       end
     end
 
@@ -539,14 +598,14 @@ module BitClust
 
     def blade_link(ml, num)
       url = sprintf(BLADE_URL, ml, num)
-      %Q(<a class="external" href="#{escape_html(url)}">[#{escape_html("#{ml}:#{num}")}]</a>)
+      a_href_external(url, "#{ml}:#{num}")
     end
 
     RFC_URL = 'https://tools.ietf.org/html/rfc%s'
 
     def rfc_link(num)
       url = sprintf(RFC_URL, num)
-      %Q(<a class="external" href="#{escape_html(url)}">[RFC#{escape_html(num)}]</a>)
+      a_href_external(url, "[RFC#{escape_html(num)}]")
     end
 
     opengroup_url = 'http://www.opengroup.org/onlinepubs/009695399'
@@ -576,14 +635,14 @@ module BitClust
     def man_link(spec)
       m = /([\w\.\/]+)\((\w+)\)/.match(spec) or return escape_html(spec)
       url = man_url(m[2], escape_html(m[1])) or return escape_html(spec)
-      %Q(<a class="external" href="#{escape_html(url)}">#{escape_html("#{m[1]}(#{m[2]})")}</a>)
+      a_href_external(url, "#{m[1]}(#{m[2]})")
     end
 
     BUGS_URL = "https://bugs.ruby-lang.org/issues/%s"
 
     def bugs_link(type, id)
       url = sprintf(BUGS_URL, id)
-      %Q(<a class="external" href="#{escape_html(url)}">[#{type}##{id}]</a>)
+      a_href_external(url, "[#{type}##{id}]")
     end
 
     def rdoc_url(method_id, version)
@@ -609,6 +668,7 @@ module BitClust
       end
     end
 
+=begin
     def seems_code(text)
       # FIXME
       escape_html(text)
