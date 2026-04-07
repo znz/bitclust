@@ -108,6 +108,24 @@ class TestMarkdownToRRD < Test::Unit::TestCase
     assert_equal expected, convert(md)
   end
 
+  def test_code_block_lang_without_title
+    md = "```sh\necho hello\n```\n"
+    expected = "//emlist[][sh]{\necho hello\n//}\n"
+    assert_equal expected, convert(md)
+  end
+
+  def test_code_block_longer_fence
+    md = "````ruby\ncode\n````\n"
+    expected = "\#@samplecode\ncode\n\#@end\n"
+    assert_equal expected, convert(md)
+  end
+
+  def test_code_block_longer_fence_not_closed_by_shorter
+    md = "````ruby\ncode\n```\nmore\n````\n"
+    expected = "\#@samplecode\ncode\n```\nmore\n\#@end\n"
+    assert_equal expected, convert(md)
+  end
+
   # Step 4: self. → ClassName. 変換
 
   def test_classname_method_preserved

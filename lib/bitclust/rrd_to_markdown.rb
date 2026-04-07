@@ -144,7 +144,10 @@ module BitClust
       parts = []
       parts << "```"
       parts << (lang || "")
-      parts << " title=\"#{caption}\"" if caption && !caption.empty?
+      if caption && !caption.empty?
+        escaped_caption = caption.gsub('\\', '\\\\\\\\').gsub('"', '\\"')
+        parts << " title=\"#{escaped_caption}\""
+      end
       @out << parts.join + "\n"
       advance
       while @index < @lines.length

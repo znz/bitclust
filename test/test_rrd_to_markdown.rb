@@ -101,6 +101,30 @@ class TestRRDToMarkdown < Test::Unit::TestCase
     assert_equal expected, convert(rrd)
   end
 
+  def test_emlist_with_caption_and_lang
+    rrd = "//emlist[例][ruby]{\nputs 'hello'\n//}\n"
+    expected = "```ruby title=\"例\"\nputs 'hello'\n```\n"
+    assert_equal expected, convert(rrd)
+  end
+
+  def test_emlist_without_caption_with_lang
+    rrd = "//emlist[][sh]{\necho hello\n//}\n"
+    expected = "```sh\necho hello\n```\n"
+    assert_equal expected, convert(rrd)
+  end
+
+  def test_emlist_without_caption_without_lang
+    rrd = "//emlist{\nplain text\n//}\n"
+    expected = "```\nplain text\n```\n"
+    assert_equal expected, convert(rrd)
+  end
+
+  def test_emlist_caption_with_double_quote
+    rrd = "//emlist[He said \"hello\"][ruby]{\ncode\n//}\n"
+    expected = "```ruby title=\"He said \\\"hello\\\"\"\ncode\n```\n"
+    assert_equal expected, convert(rrd)
+  end
+
   # Step 4: ClassName. → self. 変換
 
   def test_class_method_keeps_classname

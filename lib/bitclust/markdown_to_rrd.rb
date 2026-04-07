@@ -146,8 +146,10 @@ module BitClust
 
       title = nil
       lang = nil
-      if line =~ /\A```(\w*)/
-        lang = $1.empty? ? nil : $1
+      fence_len = 3
+      if line =~ /\A(`{3,})(\w*)/
+        fence_len = $1.length
+        lang = $2.empty? ? nil : $2
       end
       if line =~ /title="((?:[^"\\]|\\.)*)"/
         title = $1.gsub('\\"', '"')
@@ -161,15 +163,20 @@ module BitClust
       else
         # Other language or unspecified → //emlist
         parts = ['//emlist']
-        parts << "[#{title}]" if title && !title.empty?
-        parts << "[#{lang}]" if lang
+        if title && !title.empty?
+          parts << "[#{title}]"
+          parts << "[#{lang}]" if lang
+        elsif lang
+          parts << '[]'
+          parts << "[#{lang}]"
+        end
         parts << "{"
         @out << parts.join + "\n"
       end
       advance
       while @index < @lines.length
         line = current_line
-        if line =~ /\A```\s*\n?\z/
+        if line =~ /\A`{#{fence_len}}\s*\n?\z/
           if lang == 'ruby'
             @out << "#{samplecode_end}\n"
           else
@@ -207,14 +214,17 @@ module BitClust
     def convert_metadata(line, kind)
       case kind
       when 'param'
-        line =~ /\A- \*\*param\*\*(\s+)`([^`]+)` --(.*)$/
-        @out << convert_inline_refs("@param#{$1}#{$2}#{$3}\n")
+        if (m = /\A- \*\*param\*\*(\s+)`([^`]+)` --(.*)$/.match(line))
+          @out << convert_inline_refs("@param#{m[1]}#{m[2]}#{m[3]}\n")
+        end
       when 'raise'
-        line =~ /\A- \*\*raise\*\*(\s+)`([^`]+)` --(.*)$/
-        @out << convert_inline_refs("@raise#{$1}#{$2}#{$3}\n")
+        if (m = /\A- \*\*raise\*\*(\s+)`([^`]+)` --(.*)$/.match(line))
+          @out << convert_inline_refs("@raise#{m[1]}#{m[2]}#{m[3]}\n")
+        end
       when 'return'
-        line =~ /\A- \*\*return\*\*(?: `[^`]+`)? --(.*)$/
-        @out << convert_inline_refs("@return#{$1}\n")
+        if (m = /\A- \*\*return\*\*(?: `[^`]+`)? --(.*)$/.match(line))
+          @out << convert_inline_refs("@return#{m[1]}\n")
+        end
       end
       advance
       collect_md_continuation_lines
