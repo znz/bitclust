@@ -2,8 +2,6 @@
 
 module BitClust
   class RRDToMarkdown
-    INDENT_CODE_OFFSET = 3
-
     def self.convert(rrd)
       new(rrd).convert
     end
@@ -16,7 +14,6 @@ module BitClust
       @lines = @src.lines
       @out = []
       @index = 0
-      @class_name = nil
       @front_matter = {}
       @current_section = nil
 
@@ -163,7 +160,6 @@ module BitClust
     end
 
     DIRECTIVE_NEST_RE = /\A\#@(?:since|until|if)\b/
-    DIRECTIVE_ELSE_RE = /\A\#@else\s*$/
     DIRECTIVE_END_RE = /\A\#@end\s*$/
 
     def convert_samplecode(line)
@@ -254,8 +250,6 @@ module BitClust
       advance
       collect_continuation_lines
     end
-
-    CONTINUATION_DIRECTIVE_RE = /\A\#@(?:since|until|if|else|end)\b/
 
     def collect_continuation_lines
       nest = 0
@@ -407,9 +401,6 @@ module BitClust
     end
 
     def convert_h1(line)
-      if line =~ /\A= (?:class|module|object|reopen|redefine)\s+(\S+)/
-        @class_name = $1
-      end
       @out << line.sub(/\A= /, '# ')
       advance
       # include/extend/alias はパススルー（front matter にしない）

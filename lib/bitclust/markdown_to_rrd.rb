@@ -16,7 +16,6 @@ module BitClust
       @lines = @src.lines
       @out = []
       @index = 0
-      @class_name = nil
       @front_matter = {}
 
       parse_front_matter
@@ -302,11 +301,6 @@ module BitClust
       convert_heading_with_anchor(line, '====')
     end
 
-    def convert_entry_signature(line)
-      @out << line.sub(/\A### /, '--- ')
-      advance
-    end
-
     def strip_code_span(text)
       text.sub(/\A`(.+)`\z/, '\\1')
     end
@@ -425,9 +419,6 @@ module BitClust
     end
 
     def convert_h1(line)
-      if line =~ /\A# (?:class|module|object|reopen|redefine)\s+(\S+)/
-        @class_name = $1
-      end
       @out << line.sub(/\A# /, '= ')
       advance
     end
