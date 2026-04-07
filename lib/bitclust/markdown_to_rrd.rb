@@ -38,7 +38,8 @@ module BitClust
         yaml_lines << line
         advance
       end
-      @front_matter = YAML.safe_load(yaml_lines.join) || {}
+      parsed = YAML.safe_load(yaml_lines.join)
+      @front_matter = parsed.is_a?(Hash) ? parsed : {}
       emit_library_metadata
       prepare_class_metadata
       # Skip blank lines after front matter

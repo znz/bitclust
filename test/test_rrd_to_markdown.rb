@@ -101,6 +101,12 @@ class TestRRDToMarkdown < Test::Unit::TestCase
     assert_equal expected, convert(rrd)
   end
 
+  def test_samplecode_label_with_backslash
+    rrd = "\#@samplecode \"\\n\" を含む例\n1\n\#@end\n"
+    expected = "```ruby title=\"\\\"\\\\n\\\" を含む例\"\n1\n```\n"
+    assert_equal expected, convert(rrd)
+  end
+
   def test_emlist_with_caption_and_lang
     rrd = "//emlist[例][ruby]{\nputs 'hello'\n//}\n"
     expected = "```ruby title=\"例\"\nputs 'hello'\n```\n"

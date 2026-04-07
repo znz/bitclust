@@ -25,7 +25,6 @@ module BitClust
     private
 
     SAMPLECODE_RE = /\A\#@samplecode/
-    SAMPLECODE_END_RE = /\A\#@end\s*$/
 
     def collect_library_metadata
       # 先読みで #@ がメタデータ行の間に存在するか確認
@@ -167,7 +166,7 @@ module BitClust
       if label.empty?
         @out << "```ruby\n"
       else
-        escaped_label = label.gsub('"', '\\"')
+        escaped_label = label.gsub('\\', '\\\\\\\\').gsub('"', '\\"')
         @out << "```ruby title=\"#{escaped_label}\"\n"
       end
       advance
