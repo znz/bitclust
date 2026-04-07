@@ -269,7 +269,7 @@ class TestMarkdownToRRD < Test::Unit::TestCase
 
   # Step 10: YAML front matter
 
-  def test_include_passthrough
+  def test_include_metadata_passthrough
     md = "# class Array < Object\ninclude Enumerable\n\n説明\n"
     expected = "= class Array < Object\ninclude Enumerable\n\n説明\n"
     assert_equal expected, convert(md)

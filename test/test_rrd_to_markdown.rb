@@ -140,9 +140,9 @@ class TestRRDToMarkdown < Test::Unit::TestCase
     assert_match(/### module_function def measure\(label\)/, result)
   end
 
-  # ClassName.method はそのまま保持
+  # ClassName.method はそのまま保持（返り値なしパターン）
 
-  def test_class_method_keeps_classname
+  def test_class_method_keeps_classname_without_nil
     rrd = "= class Array < Object\n\n--- Array.try_convert(obj) -> Array\n"
     result = convert(rrd)
     assert_match(/### def Array\.try_convert\(obj\)/, result)
@@ -222,7 +222,7 @@ class TestRRDToMarkdown < Test::Unit::TestCase
 
   # Step 8: YAML front matter
 
-  def test_include_passthrough
+  def test_include_metadata_passthrough
     rrd = "= class Array < Object\ninclude Enumerable\n\n説明\n"
     expected = "# class Array < Object\ninclude Enumerable\n\n説明\n"
     assert_equal expected, convert(rrd)
