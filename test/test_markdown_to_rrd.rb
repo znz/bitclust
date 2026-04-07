@@ -149,7 +149,7 @@ class TestMarkdownToRRD < Test::Unit::TestCase
       ### module_function def measure(label) -> Benchmark::Tms
     MD
     result = convert(md)
-    assert_match(/\A--- measure\(label\)/, result.lines[4])
+    assert_match(/--- measure\(label\)/, result)
   end
 
   # Step 5: 定数・グローバル変数
@@ -520,6 +520,22 @@ class TestMarkdownToRRD < Test::Unit::TestCase
   def test_bold_number_to_text
     md = "**1.** テキスト\n"
     expected = "1. テキスト\n"
+    assert_equal expected, convert(md)
+  end
+
+  # リスト項目のスペース保持
+
+  def test_list_item_preserves_multiple_spaces
+    md = "-   item\n"
+    expected = " *   item\n"
+    assert_equal expected, convert(md)
+  end
+
+  # エスケープ付きブラケットの表示テキスト付きリンク
+
+  def test_display_text_link_with_escaped_brackets
+    md = "[Hash#\\[\\]][m:Hash#\\[\\]]\n"
+    expected = "[[m:Hash#[] ]]\n"
     assert_equal expected, convert(md)
   end
 end

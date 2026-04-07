@@ -355,7 +355,7 @@ module BitClust
       rrd_indent = indent.empty? ? ' ' : indent
       line =~ /\A\s*-(\s+)/
       content_indent = (indent.empty? ? 1 : indent.length) + 1 + $1.length
-      @out << convert_inline_refs(line.sub(/\A\s*-(\s)/, "#{rrd_indent}*\\1"))
+      @out << convert_inline_refs(line.sub(/\A\s*-(\s+)/, "#{rrd_indent}*\\1"))
       advance
       # 継続行を収集（content_indent 以上、空行・リスト項目・#@ で停止）
       while @index < @lines.length
@@ -440,32 +440,34 @@ module BitClust
 
     # Markdown のブラケットリンク: エスケープされた \[ \] を含むパターン
     def convert_inline_refs(line)
-      # 1. [display text][type:target] → [[type:target]] (display text を除去)
-      line = line.gsub(/\[[^\]]*\]\[([a-zA-Z][a-zA-Z-]*:[^\]]+)\]/) do
-        convert_md_ref_to_rrd($1)
-      end
-      # 2. bare [type:target] → [[type:target]] (手動パースで \[\] 対応)
-      convert_bare_refs(line)
+      convert_bracket_refs(line)
     end
 
-    def convert_bare_refs(line)
+    # エスケープ対応のブラケットリンク変換
+    # [display text][type:target] → [[type:target]] (display textを除去)
+    # [type:target] → [[type:target]] (bare ref)
+    def convert_bracket_refs(line)
       result = +""
       i = 0
       while i < line.length
         if line[i] == '[' && (i == 0 || line[i-1] != '[') && (i + 1 >= line.length || line[i+1] != '[')
           # [ の開始を検出（[[ は除外）— エスケープを考慮して ] を探す
-          j = i + 1
-          while j < line.length
-            if line[j] == '\\' && j + 1 < line.length && (line[j+1] == '[' || line[j+1] == ']' || line[j+1] == '\\')
-              j += 2  # \[ or \] or \\ をエスケープとしてスキップ
-            elsif line[j] == ']'
-              break
-            else
-              j += 1
-            end
-          end
-          if j < line.length
+          j = find_closing_bracket(line, i + 1)
+          if j
             inner = line[i+1...j]
+            # [display][type:target] パターンをチェック
+            if j + 1 < line.length && line[j+1] == '['
+              k = find_closing_bracket(line, j + 2)
+              if k
+                ref = line[j+2...k]
+                if ref =~ /\A[a-zA-Z][a-zA-Z-]*:/
+                  result << convert_md_ref_to_rrd(ref)
+                  i = k + 1
+                  next
+                end
+              end
+            end
+            # bare [type:target] パターン
             if inner =~ /\A[a-zA-Z][a-zA-Z-]*:/
               result << convert_md_ref_to_rrd(inner)
               i = j + 1
@@ -477,6 +479,20 @@ module BitClust
         i += 1
       end
       result
+    end
+
+    def find_closing_bracket(line, start)
+      j = start
+      while j < line.length
+        if line[j] == '\\' && j + 1 < line.length && (line[j+1] == '[' || line[j+1] == ']' || line[j+1] == '\\')
+          j += 2
+        elsif line[j] == ']'
+          return j
+        else
+          j += 1
+        end
+      end
+      nil
     end
 
     def convert_md_ref_to_rrd(ref)
