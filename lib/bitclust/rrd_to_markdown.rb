@@ -213,7 +213,7 @@ module BitClust
     def convert_param(line)
       l = line.chomp
       if l =~ /\A@param(\s+)(\S+)(\s+)(.*)\z/
-        @out << "- **param**#{$1}`#{$2}` --#{$3}#{$4}\n"
+        @out << "- **param**#{$1}`#{$2}` --#{$3}#{convert_inline_refs($4)}\n"
       elsif l =~ /\A@param(\s+)(\S+)\z/
         @out << "- **param**#{$1}`#{$2}` --\n"
       end
@@ -224,7 +224,7 @@ module BitClust
     def convert_raise(line)
       l = line.chomp
       if l =~ /\A@raise(\s+)(\S+)(\s+)(.*)\z/
-        @out << "- **raise**#{$1}`#{$2}` --#{$3}#{$4}\n"
+        @out << "- **raise**#{$1}`#{$2}` --#{$3}#{convert_inline_refs($4)}\n"
       elsif l =~ /\A@raise(\s+)(\S+)\z/
         @out << "- **raise**#{$1}`#{$2}` --\n"
       end
@@ -235,7 +235,7 @@ module BitClust
     def convert_return(line)
       # B2: @return 後のスペースを保持
       rest = line.sub(/\A@return/, '').chomp
-      @out << "- **return** --#{rest}\n"
+      @out << "- **return** --#{convert_inline_refs(rest)}\n"
       advance
       collect_continuation_lines
     end

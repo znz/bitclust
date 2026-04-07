@@ -77,9 +77,13 @@ include Enumerable
 ### 1.3 front matter 内のバージョン分岐
 
 `#@since`/`#@until`/`#@end` は YAML のコメント（`#` 始まり）として
-有効であるため、front matter 内でも使用できる。
+有効であるため、将来的には front matter 内でも使用できる。
 
 **処理順序**: 前処理（`#@` 指令の解決）→ YAML パース → Markdown パース
+
+**現在の変換器の制限**: `#@` ディレクティブが `category`/`require`/`sublibrary`
+行に混在する場合（例: `cgi.rd` のバージョン条件付き require）、front matter への
+移行をスキップしてそのまま保持する。
 
 ---
 

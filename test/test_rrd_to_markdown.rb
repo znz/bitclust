@@ -209,6 +209,21 @@ class TestRRDToMarkdown < Test::Unit::TestCase
       convert("@return 説明\n")
   end
 
+  def test_param_with_inline_ref
+    assert_equal "- **param** `obj` -- [c:Range] オブジェクト\n",
+      convert("@param obj [[c:Range]] オブジェクト\n")
+  end
+
+  def test_raise_with_inline_ref
+    assert_equal "- **raise** `TypeError` -- [c:String] 以外\n",
+      convert("@raise TypeError [[c:String]] 以外\n")
+  end
+
+  def test_return_with_inline_ref
+    assert_equal "- **return** -- [c:Array] を返す\n",
+      convert("@return [[c:Array]] を返す\n")
+  end
+
   def test_return_alignment_spaces_preserved
     # B2: @return の整列空白を保持
     assert_equal "- **return** --      説明\n",
