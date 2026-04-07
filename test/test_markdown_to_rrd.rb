@@ -108,6 +108,12 @@ class TestMarkdownToRRD < Test::Unit::TestCase
     assert_equal expected, convert(md)
   end
 
+  def test_code_block_title_with_backslash
+    md = "```ruby title=\"C:\\\\path\"\ncode\n```\n"
+    expected = "\#@samplecode C:\\path\ncode\n\#@end\n"
+    assert_equal expected, convert(md)
+  end
+
   def test_code_block_lang_without_title
     md = "```sh\necho hello\n```\n"
     expected = "//emlist[][sh]{\necho hello\n//}\n"

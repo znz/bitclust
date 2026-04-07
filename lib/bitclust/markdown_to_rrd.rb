@@ -151,7 +151,7 @@ module BitClust
         lang = $2.empty? ? nil : $2
       end
       if line =~ /title="((?:[^"\\]|\\.)*)"/
-        title = $1.gsub('\\"', '"')
+        title = $1.gsub(/\\(["\\])/, '\1')
       end
 
       if lang == 'ruby'
