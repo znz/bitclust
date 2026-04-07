@@ -222,17 +222,17 @@ class TestMarkdownToRRD < Test::Unit::TestCase
 
   def test_see_standalone
     assert_equal "@see [[m:String#-@]]\n",
-      convert("**SEE** [String#-@][m:String#-@]\n")
+      convert("**SEE** [m:String#-@]\n")
   end
 
   def test_see_multiple
     assert_equal "@see [[m:Array#-]], [[m:Array#union]]\n",
-      convert("**SEE** [Array#-][m:Array#-], [Array#union][m:Array#union]\n")
+      convert("**SEE** [m:Array#-], [m:Array#union]\n")
   end
 
   def test_see_with_different_types
     assert_equal "@see [[d:spec/m17n]]\n",
-      convert("**SEE** [spec/m17n][d:spec/m17n]\n")
+      convert("**SEE** [d:spec/m17n]\n")
   end
 
   # Step 8: クロスリファレンス（インライン）
@@ -247,9 +247,9 @@ class TestMarkdownToRRD < Test::Unit::TestCase
       convert("[m:Array#each] と同じ。\n")
   end
 
-  def test_inline_ref_with_display_text
+  def test_inline_ref_with_surrounding_text
     assert_equal "[[m:Array#dup]] 同様\n",
-      convert("[Array#dup][m:Array#dup] 同様\n")
+      convert("[m:Array#dup] 同様\n")
   end
 
   def test_inline_lib_ref
@@ -416,11 +416,11 @@ class TestMarkdownToRRD < Test::Unit::TestCase
   def test_see_as_list_item
     # - **see** は @see に変換すべき
     assert_equal "@see [[d:spec/m17n]]\n",
-      convert("- **see** [spec/m17n][d:spec/m17n]\n")
+      convert("- **see** [d:spec/m17n]\n")
   end
 
   def test_see_as_list_item_with_multiple_refs
-    md = "- **see** [CGI.accept_charset][m:CGI.accept_charset], [CGI.accept_charset=][m:CGI.accept_charset=]\n"
+    md = "- **see** [m:CGI.accept_charset], [m:CGI.accept_charset=]\n"
     expected = "@see [[m:CGI.accept_charset]], [[m:CGI.accept_charset=]]\n"
     assert_equal expected, convert(md)
   end
@@ -434,14 +434,14 @@ class TestMarkdownToRRD < Test::Unit::TestCase
 
   def test_dlist_item_inline_refs
     # 定義リスト内のインライン参照が変換される
-    md = "- **expires** -- 有効期限を [Time][c:Time] で指定します。\n"
+    md = "- **expires** -- 有効期限を [c:Time] で指定します。\n"
     expected = ": expires\n  有効期限を [[c:Time]] で指定します。\n"
     assert_equal expected, convert(md)
   end
 
   def test_metadata_inline_refs
     # @param 内のインライン参照が変換される
-    md = "- **param** `options` -- [Hash][c:Hash] か文字列で指定します。\n"
+    md = "- **param** `options` -- [c:Hash] か文字列で指定します。\n"
     expected = "@param options [[c:Hash]] か文字列で指定します。\n"
     assert_equal expected, convert(md)
   end
@@ -449,7 +449,7 @@ class TestMarkdownToRRD < Test::Unit::TestCase
   def test_see_with_hyphenated_ref_type
     # ruby-list: のようなハイフン付き参照型
     assert_equal "@see [[ruby-list:35911]]\n",
-      convert("- **see** [ruby-list:35911][ruby-list:35911]\n")
+      convert("- **see** [ruby-list:35911]\n")
   end
 
   def test_inline_hyphenated_ref_type
@@ -531,11 +531,4 @@ class TestMarkdownToRRD < Test::Unit::TestCase
     assert_equal expected, convert(md)
   end
 
-  # エスケープ付きブラケットの表示テキスト付きリンク
-
-  def test_display_text_link_with_escaped_brackets
-    md = "[Hash#\\[\\]][m:Hash#\\[\\]]\n"
-    expected = "[[m:Hash#[] ]]\n"
-    assert_equal expected, convert(md)
-  end
 end

@@ -440,13 +440,11 @@ module BitClust
 
     # Markdown のブラケットリンク: エスケープされた \[ \] を含むパターン
     def convert_inline_refs(line)
-      convert_bracket_refs(line)
+      # bare [type:target] → [[type:target]] (手動パースで \[\] 対応)
+      convert_bare_refs(line)
     end
 
-    # エスケープ対応のブラケットリンク変換
-    # [display text][type:target] → [[type:target]] (display textを除去)
-    # [type:target] → [[type:target]] (bare ref)
-    def convert_bracket_refs(line)
+    def convert_bare_refs(line)
       result = +""
       i = 0
       while i < line.length
@@ -455,19 +453,6 @@ module BitClust
           j = find_closing_bracket(line, i + 1)
           if j
             inner = line[i+1...j]
-            # [display][type:target] パターンをチェック
-            if j + 1 < line.length && line[j+1] == '['
-              k = find_closing_bracket(line, j + 2)
-              if k
-                ref = line[j+2...k]
-                if ref =~ /\A[a-zA-Z][a-zA-Z-]*:/
-                  result << convert_md_ref_to_rrd(ref)
-                  i = k + 1
-                  next
-                end
-              end
-            end
-            # bare [type:target] パターン
             if inner =~ /\A[a-zA-Z][a-zA-Z-]*:/
               result << convert_md_ref_to_rrd(inner)
               i = j + 1

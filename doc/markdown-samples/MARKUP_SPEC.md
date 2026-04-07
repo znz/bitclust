@@ -281,20 +281,20 @@ param/raise と同様にリスト形式で記述する。
 HTMLでの `[SEE_ALSO]` 表示に対応し、大文字のボールド体とする。
 
 ```markdown
-- **SEE** [String#-@][m:String#-@]
+- **SEE** [m:String#-@]
 ```
 
 カンマ区切りの複数参照は1つの SEE 項目内にそのまま保持する:
 
 ```markdown
-- **SEE** [String#encode][m:String#encode], [String#encode!][m:String#encode!]
+- **SEE** [m:String#encode], [m:String#encode!]
 ```
 
 RRDの `@see` が複数行に分かれている場合は個別の項目になる:
 
 ```markdown
-- **SEE** [CGI.accept_charset][m:CGI.accept_charset]
-- **SEE** [CGI.accept_charset=][m:CGI.accept_charset=]
+- **SEE** [m:CGI.accept_charset]
+- **SEE** [m:CGI.accept_charset=]
 ```
 
 ---
