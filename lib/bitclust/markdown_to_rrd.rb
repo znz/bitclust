@@ -159,7 +159,7 @@ module BitClust
         # Ruby → #@samplecode
         samplecode = '#@samplecode'
         samplecode_end = '#@end'
-        @out << (title ? "#{samplecode} #{title}\n" : "#{samplecode}\n")
+        @out << (title && !title.empty? ? "#{samplecode} #{title}\n" : "#{samplecode}\n")
       else
         # Other language or unspecified → //emlist
         parts = ['//emlist']
@@ -399,7 +399,7 @@ module BitClust
         if line =~ /\A( {4,})\S/
           n = $1.length
           deindent = [n - 3, 1].max
-          @out << (' ' * deindent) + line.lstrip
+          @out << (' ' * deindent) + line[n..]
           advance
         elsif line =~ /\A\s*$/
           if @index + 1 < @lines.length && @lines[@index + 1] =~ /\A {4,}\S/

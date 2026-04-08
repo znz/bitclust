@@ -434,15 +434,16 @@ module BitClust
     end
 
     # テキスト行の __WORD__ パターンをコードスパンに変換
-    # ブラケットリンク [type:...] 内は除外
+    # ブラケットリンク [type:...] 内とインラインコード内は除外
     def add_code_spans(text)
-      # リンク部分を保護して変換
-      parts = text.split(/(\[[^\]]*\])/)
+      # リンク部分とインラインコードを保護して変換
+      parts = text.split(/(\[[a-zA-Z][\w-]*:[^\]]*\]|`[^`]*`)/)
       parts.map { |part|
-        if part.start_with?('[') && part.end_with?(']')
-          part  # リンク内はそのまま
+        if (part.start_with?('[') && part.end_with?(']')) ||
+           (part.start_with?('`') && part.end_with?('`'))
+          part  # リンク内・コードスパン内はそのまま
         else
-          part.gsub(/(?<!`)(__\w+__)(?!`)/, '`\\1`')
+          part.gsub(/(__\w+__)/, '`\\1`')
         end
       }.join
     end

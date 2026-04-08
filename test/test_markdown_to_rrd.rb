@@ -515,6 +515,18 @@ class TestMarkdownToRRD < Test::Unit::TestCase
     assert_equal expected, convert(md)
   end
 
+  def test_indented_code_preserves_inner_indent
+    md = "説明\n````````\nif true\n  puts 1\nend\n````````\n\n"
+    expected = "説明\n     if true\n       puts 1\n     end\n\n"
+    assert_equal expected, convert(md)
+  end
+
+  def test_empty_title_treated_as_no_title
+    md = "```ruby title=\"\"\ncode\n```\n"
+    expected = "\#@samplecode\ncode\n\#@end\n"
+    assert_equal expected, convert(md)
+  end
+
   # 番号付きリスト
 
   def test_ordered_list

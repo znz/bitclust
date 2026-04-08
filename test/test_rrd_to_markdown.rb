@@ -442,6 +442,19 @@ class TestRRDToMarkdown < Test::Unit::TestCase
     assert_equal expected, convert(rrd)
   end
 
+  # __WORD__ コードスパン変換
+
+  def test_add_code_spans_basic
+    assert_match(/`__END__`/, convert("__END__ を使う\n"))
+  end
+
+  def test_add_code_spans_inside_inline_code_preserved
+    # 既にインラインコード内にある __WORD__ は二重変換しない
+    rrd = "既に `__END__` と書かれている\n"
+    result = convert(rrd)
+    assert_equal "既に `__END__` と書かれている\n", result
+  end
+
   # Step 13: 統合テスト — Comparable ラウンドトリップ
 
   def test_comparable_roundtrip
