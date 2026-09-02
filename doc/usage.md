@@ -90,7 +90,10 @@ refe と同じ規則で引き、1 件に決まればその Markdown 配信
 
 ```--capi``` オプションを付けた場合，C API（doctree の manual/capi 以下）を対象とします。付けない場合，ライブラリ（manual/api 以下）と言語仕様など（manual/doc 以下）を対象とします。
 
-$HOME/.bitclust/config がある場合は、```-d```オプションは省略可能です。
+設定ファイル（$XDG_CONFIG_HOME/bitclust/config、既定は
+`~/.config/bitclust/config`）がある場合は、```-d```オプションは省略可能です
+（1.7 以前の `bitclust setup` が作った `~/.bitclust/config` が残っていれば、
+そちらも fallback として読みます）。
 
 ### ユーザー向け
 
@@ -101,7 +104,11 @@ $HOME/.bitclust/config がある場合は、```-d```オプションは省略可�
 生成までを一括で実行します。refe を使うための最短の入り口です。
 git コマンドに PATH が通っている必要があります。
 doctree の Markdown ツリー（manual/）から DB を構築します。
-生成物は $HOME/.bitclust 以下に置かれます。
+設定ファイルは $XDG_CONFIG_HOME/bitclust/config（既定は
+`~/.config/bitclust/config`）に、DB と doctree のチェックアウトは
+$XDG_DATA_HOME/bitclust 以下（既定は `~/.local/share/bitclust`）に
+置かれます。既に `~/.bitclust`（1.7 以前の setup が作った場所）がある場合は、
+そちらをそのまま読み書きします。
 </dd>
 </dl>
 

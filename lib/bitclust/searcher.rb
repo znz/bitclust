@@ -14,6 +14,7 @@ require 'bitclust/functiondatabase'
 require 'bitclust/nameutils'
 require 'bitclust/methodid'
 require 'bitclust/exception'
+require 'bitclust/user_dirs'
 require 'uri'
 require 'rbconfig'
 require 'optparse'
@@ -129,13 +130,14 @@ module BitClust
 
     # irb プラグインなど組み込み利用向けの入口。argv のパターンを db から
     # 検索し、結果を view(TerminalView)へ出力する。db が nil なら
-    # 既定の場所(~/.bitclust/config など)から探す
+    # 既定の場所(環境変数 BITCLUST_DATADIR など・設定ファイル(UserDirs))
+    # から探す
     def run_query(db, argv, view)
       @view = view
       search_pattern db, argv
     end
 
-    # 既定の場所(環境変数 BITCLUST_DATADIR など・~/.bitclust/config)に
+    # 既定の場所(環境変数 BITCLUST_DATADIR など・設定ファイル(UserDirs))に
     # ローカル DB があるか。irb プラグインが HTTP フォールバックへ切り替える
     # 判定に使う。環境変数が不正な DB を指していれば InvalidDatabase
     def local_database?
@@ -264,9 +266,8 @@ module BitClust
       [ "#{datadir}/refe2", "#{datadir}/bitclust" ].each do |path|
         return path if MethodDatabase.datadir?(path)
       end
-      config_path = Pathname(ENV.fetch('HOME')) + ".bitclust" + "config"
-      if config_path.exist?
-        config = YAML.load_file(config_path)
+      config = UserDirs.load_config
+      if config
         return "#{config[:database_prefix]}-#{config[:default_version]}"
       end
       nil
