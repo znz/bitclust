@@ -129,6 +129,13 @@ module BitClust
       search_pattern db, argv
     end
 
+    # 既定の場所(環境変数 BITCLUST_DATADIR など・~/.bitclust/config)に
+    # ローカル DB があるか。irb プラグインが HTTP フォールバックへ切り替える
+    # 判定に使う。環境変数が不正な DB を指していれば InvalidDatabase
+    def local_database?
+      !find_dblocation().nil?
+    end
+
     private
 
     def server_mode_check(argv)
@@ -358,16 +365,6 @@ module BitClust
       cnames = pattern.split(/::/)
       name = cnames.pop
       find_method db, cnames.join('::'), '::', name
-    end
-
-    # 区切りは反転文字列上で探す。"?." は 4.0 以降の module function の
-    # 表示形式(反転すると ".?")で、内部表記の ".#" に正規化する
-    def parse_method_spec_pattern(pat)
-      _m, _t, _c = pat.reverse.split(/([\#,]\.|\.[\#,]|\.\?|[\#\.\,])/, 2)
-      c = (_c || raise).reverse
-      t = (_t || raise).tr(',', '#').sub(/\#\.|\.\?/, '.#')
-      m = (_m || raise).reverse
-      return c, t, m
     end
 
   end

@@ -65,8 +65,19 @@ require "bitclust/irb"
 irb のセッション中に `refe String#gsub` のように入力すると、
 refe コマンドと同じデータベース($HOME/.bitclust/config か
 環境変数 BITCLUST_DATADIR で指定した場所)を検索して
-結果をページャで表示します。データベースは事前に `bitclust setup`
-で作成しておいてください。
+結果をページャで表示します。
+
+データベースが無い場合は、docs.ruby-lang.org の Markdown 配信
+(https://docs.ruby-lang.org/ja/latest/ 配下の .md)から該当ページを
+取得して表示します。この場合は `refe String#gsub` や `refe Array.new`、
+`refe json`(ライブラリ)のようにページが決まる指定だけが使えます
+(`refe each` のようにメソッド名だけからクラスをまたいで探す検索は
+できません)。手元で検索したい場合は `bitclust setup` で
+データベースを作成してください。
+
+取得先は `BitClust::Irb.remote_base_url`(既定は
+`https://docs.ruby-lang.org/ja/latest/`)で変更でき、`nil` を設定すると
+取得しません(.md を配信しているのは latest だけです)。
 
 ## bitclust サブコマンド
 

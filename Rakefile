@@ -32,7 +32,7 @@ task :sig do
   sh "rbs prototype rb --out-dir=#{out_dir} lib"
   FileUtils.rm "#{out_dir}/bitclust/compat.rbs"
   sh "rbs subtract --write #{out_dir} sig"
-  FileUtils.rmdir ["#{out_dir}/bitclust/generators", "#{out_dir}/bitclust/subcommands", "#{out_dir}/bitclust", "#{out_dir}"]
+  FileUtils.rmdir ["#{out_dir}/bitclust/generators", "#{out_dir}/bitclust/irb", "#{out_dir}/bitclust/subcommands", "#{out_dir}/bitclust", "#{out_dir}"]
   sh 'rbs validate'
 end
 

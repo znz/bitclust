@@ -22,10 +22,89 @@ module BitClust
   module Irb
     USAGE: String
 
-    def self.lookup: (untyped pattern, ?io: _SearcherOutput, ?db: (MethodDatabase | FunctionDatabase)?) -> void
+    NO_DATABASE_MESSAGE: String
+
+    attr_accessor self.remote_base_url: String?
+
+    def self.default_remote: () -> Remote?
+
+    def self.lookup: (untyped pattern, ?io: _SearcherOutput, ?db: (MethodDatabase | FunctionDatabase)?, ?remote: Remote?) -> void
 
     class RefeCommand < ::IRB::Command::Base
       def execute: (String arg) -> void
+    end
+
+    # docs.ruby-lang.org の Markdown 配信から 1 ページ取得する HTTP フォールバック
+    class Remote
+      include NameUtils
+
+      # URI を受け取り [HTTP ステータス, 本文] を返す
+      interface _Fetcher
+        def call: (URI::Generic uri) -> [Integer, String]
+      end
+
+      DEFAULT_BASE_URL: String
+
+      SEARCH_URL: String
+
+      TYPECHARS_WITHOUT_TYPE: Array[String]
+
+      NETWORK_ERRORS: Array[singleton(Exception)]
+
+      @base_url: String
+
+      @fetcher: _Fetcher?
+
+      attr_reader base_url: String
+
+      def initialize: (?base_url: String, ?fetcher: _Fetcher?) -> void
+
+      def lookup: (Array[String] words, _SearcherOutput io) -> bool
+
+      def find: (Array[String] words) -> [String, String]?
+
+      def candidate_paths: (Array[String] words) -> Array[String]
+
+      def search_url: (Array[String] words) -> String
+
+      private
+
+      def find_with: (_Fetcher fetcher, Array[String] words) -> [String, String]?
+
+      def single_word_paths: (String pat) -> Array[String]
+
+      def method_paths: (String c, String? t, String m) -> Array[String]
+
+      def method_path: (String c, String typechar, String m) -> String
+
+      def class_path: (String c) -> String
+
+      def library_path: (String lib) -> String
+
+      def to_utf8: (String body) -> String
+
+      # Net::HTTP による既定の取得(接続を使い回し、close で閉じる)
+      class HttpFetcher
+        HEADERS: Hash[String, String]
+
+        MAX_REDIRECTS: Integer
+
+        @open_timeout: Integer
+
+        @read_timeout: Integer
+
+        @sessions: Hash[[String?, Integer?], Net::HTTP]
+
+        def initialize: (?open_timeout: Integer, ?read_timeout: Integer) -> void
+
+        def call: (URI::Generic uri) -> [Integer, String]
+
+        def close: () -> void
+
+        private
+
+        def session: (URI::Generic uri) -> Net::HTTP
+      end
     end
   end
 end
