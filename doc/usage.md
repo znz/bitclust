@@ -82,8 +82,10 @@ refe と同じ規則で引き、1 件に決まればその Markdown 配信
 接続できないときは古いキャッシュで動きます。
 
 取得先は環境変数 `BITCLUST_REMOTE_URL` で変更でき(既定は
-`https://docs.ruby-lang.org/ja/latest/`)、空文字列を設定すると
-リモート検索をしません。索引と `.md` を配信しているのは latest だけです。
+`https://docs.ruby-lang.org/ja/latest/`)、`none` を設定すると
+リモート検索をしません(空文字列でも同じですが、Windows の cmd.exe や
+PowerShell では空の環境変数を作れないので `none` を使ってください)。
+索引と `.md` を配信しているのは latest だけです。
 手元で検索したい場合は `bitclust setup` でデータベースを作成してください。
 
 ## bitclust サブコマンド

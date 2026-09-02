@@ -37,7 +37,8 @@ require 'bitclust/remote'
 # [x] 複数なら名前一覧(line: なら 1 行 1 件、describe_all: なら全件の本文)
 # [x] 見つからなければメッセージと検索ページ URL
 # [x] 索引が取れずキャッシュも無ければメッセージだけ(例外にしない)
-# [x] Remote.default は BITCLUST_REMOTE_URL が空なら nil、指定があればその URL
+# [x] Remote.default は BITCLUST_REMOTE_URL が指定があればその URL
+# [x] Remote.default は BITCLUST_REMOTE_URL が none(大小無視)か空なら nil(Windows では空の環境変数を作れない)
 class TestRemote < Test::Unit::TestCase
   BASE_URL = 'https://docs.ruby-lang.org/ja/latest/'
 
@@ -354,9 +355,20 @@ class TestRemote < Test::Unit::TestCase
 
   def test_default_follows_environment
     assert_equal(BitClust::Remote::DEFAULT_BASE_URL, BitClust::Remote.default.base_url)
-    ENV['BITCLUST_REMOTE_URL'] = ''
-    assert_nil(BitClust::Remote.default)
     ENV['BITCLUST_REMOTE_URL'] = 'http://localhost:10080/ja/latest'
     assert_equal('http://localhost:10080/ja/latest/', BitClust::Remote.default.base_url)
+  end
+
+  # Windows のシェル(cmd.exe・PowerShell)では空の環境変数を作れないので、
+  # 無効化は "none" でもできる
+  def test_default_is_disabled_by_none_or_empty
+    %w[none NONE None].each do |value|
+      ENV['BITCLUST_REMOTE_URL'] = value
+      assert_nil(BitClust::Remote.default, value)
+    end
+    ENV['BITCLUST_REMOTE_URL'] = ''
+    assert_nil(BitClust::Remote.default)
+    ENV['BITCLUST_REMOTE_URL'] = 'http://none.example/'
+    assert_equal('http://none.example/', BitClust::Remote.default.base_url)
   end
 end

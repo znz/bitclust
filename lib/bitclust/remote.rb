@@ -35,11 +35,16 @@ module BitClust
     NETWORK_ERRORS = [SocketError, IOError, SystemCallError, Timeout::Error,
                       OpenSSL::SSL::SSLError, Net::ProtocolError, HTTPError].freeze
 
+    # BITCLUST_REMOTE_URL にこの値(大小無視)を設定するとリモート検索をしない。
+    # 空文字列でも同じだが、Windows のシェル(cmd.exe・PowerShell)では
+    # 空の環境変数を作れない(削除になる)ので、無効化の値を別に用意する
+    DISABLED_VALUE = 'none'
+
     # 既定の取得元。環境変数 BITCLUST_REMOTE_URL があればそれを使い、
-    # 空文字列ならリモート検索をしない(nil)
+    # DISABLED_VALUE か空文字列ならリモート検索をしない(nil)
     def self.default
       url = ENV.fetch(ENV_KEY, DEFAULT_BASE_URL)
-      url.empty? ? nil : new(base_url: url)
+      url.empty? || url.casecmp?(DISABLED_VALUE) ? nil : new(base_url: url)
     end
 
     attr_reader :base_url

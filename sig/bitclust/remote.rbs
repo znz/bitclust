@@ -20,6 +20,8 @@ module BitClust
 
     ENV_KEY: String
 
+    DISABLED_VALUE: String
+
     NETWORK_ERRORS: Array[singleton(Exception)]
 
     self.@index_memo: [[String, Time], Index]?
