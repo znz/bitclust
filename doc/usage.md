@@ -63,21 +63,28 @@ require "bitclust/irb"
 ```
 
 irb のセッション中に `refe String#gsub` のように入力すると、
-refe コマンドと同じデータベース($HOME/.bitclust/config か
-環境変数 BITCLUST_DATADIR で指定した場所)を検索して
+refe コマンドと同じデータベース(環境変数 BITCLUST_DATADIR か
+`bitclust setup` が作る設定ファイル)を検索して
 結果をページャで表示します。
 
-データベースが無い場合は、docs.ruby-lang.org の Markdown 配信
-(https://docs.ruby-lang.org/ja/latest/ 配下の .md)から該当ページを
-取得して表示します。この場合は `refe String#gsub` や `refe Array.new`、
-`refe json`(ライブラリ)のようにページが決まる指定だけが使えます
-(`refe each` のようにメソッド名だけからクラスをまたいで探す検索は
-できません)。手元で検索したい場合は `bitclust setup` で
-データベースを作成してください。
+## データベースが無いときの動作(refe・irb の refe コマンド共通)
 
-取得先は `BitClust::Irb.remote_base_url`(既定は
-`https://docs.ruby-lang.org/ja/latest/`)で変更でき、`nil` を設定すると
-取得しません(.md を配信しているのは latest だけです)。
+データベースが無い場合、refe コマンドと irb の `refe` コマンドは
+docs.ruby-lang.org の検索索引(`/ja/latest/js/search_data.js`)を
+refe と同じ規則で引き、1 件に決まればその Markdown 配信
+(`/ja/latest/` 配下の `.md`)を取得して表示します。複数に当たれば
+名前の一覧を出します(`-l` や `-a` も使えます)。
+`refe each` のようなメソッド名だけの検索もできます。
+
+取得した索引とページは `$XDG_CACHE_HOME/bitclust/`
+(既定 `~/.cache/bitclust/`)にキャッシュされ、1 日以内はそのまま
+使います。それより古い場合は If-Modified-Since で更新を確認し、
+接続できないときは古いキャッシュで動きます。
+
+取得先は環境変数 `BITCLUST_REMOTE_URL` で変更でき(既定は
+`https://docs.ruby-lang.org/ja/latest/`)、空文字列を設定すると
+リモート検索をしません。索引と `.md` を配信しているのは latest だけです。
+手元で検索したい場合は `bitclust setup` でデータベースを作成してください。
 
 ## bitclust サブコマンド
 

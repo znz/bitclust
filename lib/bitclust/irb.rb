@@ -2,14 +2,13 @@
 #
 # irb からるりま(Ruby リファレンスマニュアル)を引く refe コマンド。
 # ~/.irbrc に `require "bitclust/irb"` と書くと irb に `refe` コマンドが
-# 登録される。検索対象の DB は refe コマンドと同じ場所
-# (bitclust setup が作る ~/.bitclust/config)から探し、DB が無ければ
-# docs.ruby-lang.org の Markdown 配信から取得する(BitClust::Irb::Remote)。
+# 登録される。検索対象の DB は refe コマンドと同じ場所(bitclust setup が
+# 作る設定ファイル)から探し、DB が無ければ docs.ruby-lang.org の検索索引と
+# Markdown 配信から取得する(BitClust::Remote)。
 
 require 'stringio'
 require 'bitclust'
 require 'bitclust/searcher'
-require 'bitclust/irb/remote'
 
 module BitClust
   module Irb
@@ -20,51 +19,29 @@ module BitClust
         refe String#gsub     インスタンスメソッド
         refe Array.new       特異メソッド
         refe Comparable      クラス・モジュール
-        refe printf          名前だけでの検索
+        refe each            名前だけでの検索(該当が複数なら一覧)
 
-      DB が無い場合は docs.ruby-lang.org から取得します(名前だけの検索は
-      できません)。`bitclust setup` で DB を作ると手元で検索できます。
+      DB が無い場合は docs.ruby-lang.org から取得します(1 日キャッシュ)。
+      `bitclust setup` で DB を作ると手元で検索できます。
     USAGE
-
-    NO_DATABASE_MESSAGE = <<~MSG
-      DB が見つかりません。`bitclust setup` で作成してください。
-      (docs.ruby-lang.org からの取得は BitClust::Irb.remote_base_url が nil のため無効です)
-    MSG
-
-    class << self
-      # DB が無いときに取得する docs.ruby-lang.org の版の URL(末尾 / まで)。
-      # nil にするとフォールバックしない。.md を配信しているのは latest だけ
-      attr_accessor :remote_base_url
-    end
-    self.remote_base_url = Remote::DEFAULT_BASE_URL
-
-    def self.default_remote
-      url = remote_base_url
-      url ? Remote.new(base_url: url) : nil
-    end
 
     # pattern を検索して整形済みテキストを io へ書く。db が nil なら
     # 既定の場所から探し、そこにも無ければ remote(省略時は
-    # default_remote。nil ならフォールバックしない)から取得する。
+    # Remote.default。nil ならフォールバックしない)で検索する。
     # 検索の失敗は例外にせず io へメッセージを書く(irb セッションを
     # 止めないため)
-    def self.lookup(pattern, io: $stdout, db: nil, remote: default_remote)
+    def self.lookup(pattern, io: $stdout, db: nil, remote: Remote.default)
       words = pattern.to_s.split
       if words.empty?
         io.puts USAGE
         return
       end
+      view = TerminalView.new(Plain.new,
+                              { describe_all: false, line: false, encoding: nil },
+                              io: io)
       searcher = Searcher.new
-      if db || searcher.local_database?
-        view = TerminalView.new(Plain.new,
-                                { describe_all: false, line: false, encoding: nil },
-                                io: io)
-        searcher.run_query(db, words, view)
-      elsif remote
-        remote.lookup(words, io)
-      else
-        io.puts NO_DATABASE_MESSAGE
-      end
+      searcher.remote = remote
+      searcher.run_query(db, words, view)
     rescue BitClust::UserError => err
       io.puts err.message
     end

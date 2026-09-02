@@ -9,6 +9,7 @@
 #
 
 require 'bitclust/methoddatabase'
+require 'bitclust/remote'
 require 'bitclust/functiondatabase'
 require 'bitclust/nameutils'
 require 'bitclust/methodid'
@@ -36,6 +37,7 @@ module BitClust
       @target_type = nil
       @listen_url = nil
       @foreground = false
+      @remote = Remote.default
       @parser = OptionParser.new {|parser|
         parser.banner = "Usage: #{@name} <pattern>"
         unless cmd == 'bitclust'
@@ -90,6 +92,10 @@ module BitClust
     end
 
     attr_reader :parser
+
+    # ローカル DB が無いときに使うリモート検索(BitClust::Remote)。nil なら
+    # DB が無いことをエラーにする
+    attr_accessor :remote
 
     def parse(argv)
       @parser.parse! argv
@@ -267,6 +273,15 @@ module BitClust
     end
 
     def search_pattern(db, argv)
+      if db.nil? && !find_dblocation
+        remote = @remote
+        unless remote
+          raise InvalidDatabase, "no database found: run `bitclust setup` to create one (remote search is disabled by BITCLUST_REMOTE_URL)"
+        end
+        remote.lookup(argv, @view.io, describe_all: @describe_all, line: @linep,
+                      class_only: @target_type == :class)
+        return
+      end
       db ||= new_database()
       @view.database ||= db if @view
       # FIXME なぜか else 節にきかないのでここに書いておく
@@ -391,6 +406,22 @@ module BitClust
 
     attr_accessor :database
 
+    # 出力先(io: 省略時は $stdout)
+    def io
+      @io || $stdout
+    end
+
+    # 名前の一覧を表示する(-l なら 1 行 1 件、それ以外は端末幅に詰める)
+    def print_names(names)
+      if @line
+        names.sort.each do |n|
+          puts n
+        end
+      else
+        print_packed_names names.sort
+      end
+    end
+
     def show_class(cs)
       if cs.size == 1
         if @line
@@ -446,16 +477,6 @@ module BitClust
     end
 
     private
-
-    def print_names(names)
-      if @line
-        names.sort.each do |n|
-          puts n
-        end
-      else
-        print_packed_names names.sort
-      end
-    end
 
     def print_packed_names(names)
       max = terminal_column()

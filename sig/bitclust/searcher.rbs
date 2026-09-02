@@ -24,11 +24,15 @@ module BitClust
 
     @view: TerminalView
 
+    @remote: Remote?
+
     include NameUtils
 
     def initialize: () -> void
 
     attr_reader parser: OptionParser
+
+    attr_accessor remote: Remote?
 
     def parse: (Array[String] argv) -> void
 
@@ -104,6 +108,10 @@ module BitClust
 
     def initialize: (Plain compiler, { :describe_all => bool, :line => bool, :encoding => String? } opts, ?io: _SearcherOutput?) -> void
 
+    def io: () -> _SearcherOutput
+
+    def print_names: (Array[String] names) -> void
+
     attr_accessor database: MethodDatabase
 
     def show_class: (Array[ClassEntry] cs) -> void
@@ -113,8 +121,6 @@ module BitClust
     def show_function: (Array[FunctionEntry] fs) -> void
 
     private
-
-    def print_names: (Array[String] names) -> void
 
     def print_packed_names: (Array[String] names) -> void
 
